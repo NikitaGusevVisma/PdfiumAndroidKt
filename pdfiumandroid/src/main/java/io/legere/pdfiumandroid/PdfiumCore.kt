@@ -14,6 +14,7 @@ import io.legere.pdfiumandroid.util.Config
 import io.legere.pdfiumandroid.util.InitLock
 import io.legere.pdfiumandroid.util.PdfiumNativeSourceBridge
 import io.legere.pdfiumandroid.util.Size
+import io.legere.pdfiumandroid.util.handleAlreadyClosed
 import io.legere.pdfiumandroid.util.pdfiumConfig
 import kotlinx.coroutines.sync.Mutex
 import java.io.IOException
@@ -290,8 +291,16 @@ class PdfiumCore(
         renderAnnot: Boolean = false,
         textMask: Boolean = false,
     ) {
-        pdfDocument.openPage(pageIndex).use { page ->
-            page.renderPageBitmap(bitmap, startX, startY, drawSizeX, drawSizeY, renderAnnot, textMask)
+        // Hold the lock across the closed-check AND the open->render->close chain
+        // (the inner synchronized blocks are reentrant). Without this, another
+        // thread can close the document between openPage() and the render —
+        // openPage's raw check() then throws even under AlreadyClosedBehavior.IGNORE,
+        // or the render hits a freed native document (use-after-free).
+        synchronized(lock) {
+            if (handleAlreadyClosed(pdfDocument.isClosed)) return
+            pdfDocument.openPage(pageIndex).use { page ->
+                page.renderPageBitmap(bitmap, startX, startY, drawSizeX, drawSizeY, renderAnnot, textMask)
+            }
         }
     }
 
@@ -434,8 +443,11 @@ class PdfiumCore(
         pdfDocument: PdfDocument,
         index: Int,
     ): Size {
-        pdfDocument.openPage(index).use { page ->
-            return page.getPageSize(mCurrentDpi)
+        synchronized(lock) {
+            if (handleAlreadyClosed(pdfDocument.isClosed)) return Size(0, 0)
+            pdfDocument.openPage(index).use { page ->
+                return page.getPageSize(mCurrentDpi)
+            }
         }
     }
 
@@ -500,8 +512,13 @@ class PdfiumCore(
         drawSizeY: Int,
         renderAnnot: Boolean = false,
     ) {
-        pdfDocument.openPage(pageIndex).use { page ->
-            page.renderPageBitmap(bitmap, startX, startY, drawSizeX, drawSizeY, renderAnnot)
+        // Same closed-check + single continuous lock hold as the textMask overload —
+        // this is the exact shim AndroidPdfViewer's RenderingHandler renders through.
+        synchronized(lock) {
+            if (handleAlreadyClosed(pdfDocument.isClosed)) return
+            pdfDocument.openPage(pageIndex).use { page ->
+                page.renderPageBitmap(bitmap, startX, startY, drawSizeX, drawSizeY, renderAnnot)
+            }
         }
     }
 
@@ -517,8 +534,11 @@ class PdfiumCore(
         pdfDocument: PdfDocument,
         pageIndex: Int,
     ): List<PdfDocument.Link> {
-        pdfDocument.openPage(pageIndex).use { page ->
-            return page.getPageLinks()
+        synchronized(lock) {
+            if (handleAlreadyClosed(pdfDocument.isClosed)) return emptyList()
+            pdfDocument.openPage(pageIndex).use { page ->
+                return page.getPageLinks()
+            }
         }
     }
 
