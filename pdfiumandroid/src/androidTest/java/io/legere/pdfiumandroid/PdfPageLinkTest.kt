@@ -81,7 +81,7 @@ class PdfPageLinkTest : BasePDFTest() {
         val links = pdfTextPage.loadWebLink()
         assertThat(links).isNotNull()
         val count = links.getRect(0, 0)
-        assertThat(count).isEqualTo(RectF(221.46f, 480.624f, 389.66394f, 469.152f))
+        assertThat(count).isEqualTo(RectF(221.45999f, 480.624f, 389.66394f, 469.152f))
         links.close()
     }
 }

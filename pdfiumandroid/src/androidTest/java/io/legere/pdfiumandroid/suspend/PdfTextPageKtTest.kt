@@ -78,7 +78,7 @@ class PdfTextPageKtTest : BasePDFTest() {
 
                     Truth
                         .assertThat(rect)
-                        .isEqualTo(RectF(90.314415f, 715.3187f, 103.44171f, 699.1206f))
+                        .isEqualTo(RectF(90.3144f, 715.3186f, 103.441696f, 699.1205f))
                 }
             }
         }

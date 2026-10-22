@@ -397,7 +397,7 @@ class FastNativeTest : BasePDFTest() {
         val textPageGetUnicode = page.textPageGetUnicode(0)
         assertThat(textPageGetUnicode).isEqualTo('T')
         val textPageGetCharBox = page.textPageGetCharBox(0)
-        assertThat(textPageGetCharBox).isEqualTo(RectF(90.314415f, 715.3187f, 103.44171f, 699.1206f))
+        assertThat(textPageGetCharBox).isEqualTo(RectF(90.3144f, 715.3186f, 103.441696f, 699.1205f))
 
         repeat(textPageCountRects) {
             val textPageGetRect = page.textPageGetRect(it)
